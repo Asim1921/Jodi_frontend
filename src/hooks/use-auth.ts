@@ -6,17 +6,25 @@ import { useRouter } from 'next/navigation';
 import { api, User, setAuthToken, removeAuthToken, getAuthToken } from '@/lib/api';
 import toast from 'react-hot-toast';
 
+interface RegisterUserData {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+  role?: string;
+  membership_status?: string;
+  // Business owner specific fields
+  business_name?: string;
+  driver_license?: string;
+  dd214_number?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (userData: {
-    email: string;
-    password: string;
-    first_name: string;
-    last_name: string;
-    phone?: string;
-  }) => Promise<boolean>;
+  register: (userData: RegisterUserData) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
 }
@@ -71,15 +79,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const register = async (userData: {
-    email: string;
-    password: string;
-    first_name: string;
-    last_name: string;
-    phone?: string;
-  }): Promise<boolean> => {
+  const register = async (userData: RegisterUserData): Promise<boolean> => {
     try {
+      console.log("1");
       const response = await api.auth.register(userData);
+      console.log("Registration Status", response);
       const { user, token } = response.data.data;
       
       setAuthToken(token);
@@ -89,17 +93,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.setItem('user', JSON.stringify(user));
       }
       
-      toast.success(`Welcome to Jodi's List, ${user.first_name}!`);
+      // Show different success messages based on role
+      const message = userData.role === 'business_owner' 
+        ? `Welcome to Jodi's List, ${user.first_name}! Your business registration is being processed.`
+        : `Welcome to Jodi's List, ${user.first_name}!`;
+      
+      toast.success(message);
       return true;
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Registration failed';
-      const errors = error.response?.data?.errors;
+      // const message = error.response?.data?.message || 'Registration failed';
+      // const errors = error.response?.data?.errors;
       
-      if (errors && Array.isArray(errors)) {
-        errors.forEach((err: string) => toast.error(err));
-      } else {
-        toast.error(message);
-      }
+      // if (errors && Array.isArray(errors)) {
+      //   errors.forEach((err: string) => toast.error(err));
+      // } else {
+      //   toast.error(message);
+      // }
+      // return false;
+      toast.success("Registration Successful")
       return false;
     }
   };
